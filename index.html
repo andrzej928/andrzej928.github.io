@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moje wtyczki QGIS | Power EZiUDP</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+            background: #f4f7fb;
+            color: #1e2b3c;
+            line-height: 1.6;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 32px;
+            box-shadow: 0 20px 40px -12px rgba(0, 20, 30, 0.25);
+            padding: 2.5rem 2rem;
+            transition: all 0.2s ease;
+        }
+
+        /* Nagłówek */
+        .header {
+            border-bottom: 2px solid #e9edf4;
+            padding-bottom: 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 2.2rem;
+            font-weight: 600;
+            background: linear-gradient(145deg, #2c3e50, #1a2a3a);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -0.5px;
+        }
+
+        .header .badge {
+            background: #1e3b4f;
+            color: white;
+            padding: 0.3rem 1rem;
+            border-radius: 60px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .header .badge i {
+            font-style: normal;
+            font-size: 1.1rem;
+        }
+
+        /* Karta wtyczki */
+        .plugin-card {
+            background: #f8faff;
+            border-radius: 24px;
+            padding: 1.8rem 2rem;
+            margin: 2rem 0 2.5rem 0;
+            border: 1px solid #e2e9f2;
+            box-shadow: 0 6px 14px rgba(0, 20, 30, 0.04);
+        }
+
+        .plugin-card h2 {
+            font-size: 1.9rem;
+            font-weight: 600;
+            color: #0b1e2b;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            flex-wrap: wrap;
+        }
+
+        .plugin-card .plugin-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem 1.8rem;
+            margin-top: 0.2rem;
+            font-size: 0.95rem;
+            color: #2c4a5e;
+        }
+
+        .plugin-card .plugin-meta span {
+            background: #e4ebf5;
+            padding: 0.2rem 0.8rem;
+            border-radius: 40px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .plugin-card .description {
+            margin: 1.2rem 0 1.5rem 0;
+            padding: 1rem 1.2rem;
+            background: white;
+            border-radius: 16px;
+            border-left: 6px solid #3b6e8f;
+            font-size: 1.05rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+        }
+
+        .plugin-card .description strong {
+            color: #004466;
+        }
+
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.8rem 1.2rem;
+            margin-top: 0.5rem;
+        }
+
+        .btn {
+            display: inline-block;
+            background: #1e3b4f;
+            color: white;
+            font-weight: 500;
+            padding: 0.7rem 1.8rem;
+            border-radius: 60px;
+            text-decoration: none;
+            transition: 0.2s;
+            border: 1px solid transparent;
+            font-size: 0.95rem;
+            box-shadow: 0 4px 8px rgba(0, 20, 30, 0.08);
+        }
+
+        .btn:hover {
+            background: #12303f;
+            transform: scale(1.02);
+            box-shadow: 0 8px 16px rgba(0, 20, 30, 0.12);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: #1e3b4f;
+            border: 1px solid #b6cbd9;
+            box-shadow: none;
+        }
+
+        .btn-outline:hover {
+            background: #e5eef7;
+            border-color: #7f9db3;
+            transform: none;
+        }
+
+        .btn i {
+            margin-right: 0.4rem;
+        }
+
+        /* Sekcja informacji */
+        .info-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin: 2.5rem 0 2rem 0;
+        }
+
+        .info-box {
+            background: #f4f8fe;
+            border-radius: 20px;
+            padding: 1.6rem 1.8rem;
+            border: 1px solid #e2ebf5;
+        }
+
+        .info-box h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            margin-bottom: 0.8rem;
+            color: #0b293b;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .info-box ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .info-box li {
+            padding: 0.4rem 0;
+            border-bottom: 1px dashed #d6e2ee;
+            display: flex;
+            align-items: baseline;
+            gap: 0.6rem;
+        }
+
+        .info-box li:last-child {
+            border-bottom: none;
+        }
+
+        .info-box li::before {
+            content: "▹";
+            color: #2f6a8a;
+            font-weight: bold;
+        }
+
+        .info-box a {
+            color: #1a5a7a;
+            text-decoration: none;
+            font-weight: 500;
+            border-bottom: 1px dotted #90b1c9;
+        }
+
+        .info-box a:hover {
+            color: #003753;
+            border-bottom: 2px solid #1f5a7a;
+        }
+
+        .tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.4rem;
+        }
+
+        .tag {
+            background: #dce8f2;
+            padding: 0.2rem 0.9rem;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            color: #1f4157;
+            font-weight: 500;
+        }
+
+        .footer-links {
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 2px solid #e7eef6;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .footer-links .repo-link {
+            background: #ecf3fa;
+            padding: 0.5rem 1.5rem;
+            border-radius: 60px;
+            font-size: 0.95rem;
+        }
+
+        .footer-links .repo-link a {
+            font-weight: 600;
+            color: #004466;
+            text-decoration: none;
+        }
+
+        .footer-links .repo-link a:hover {
+            text-decoration: underline;
+        }
+
+        .note {
+            font-size: 0.9rem;
+            color: #3d5c70;
+            background: #eef4fa;
+            padding: 0.6rem 1.2rem;
+            border-radius: 40px;
+        }
+
+        /* Responsywność */
+        @media (max-width: 720px) {
+            .container {
+                padding: 1.5rem 1rem;
+            }
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+            .header h1 {
+                font-size: 1.8rem;
+            }
+            .info-section {
+                grid-template-columns: 1fr;
+                gap: 1.2rem;
+            }
+            .plugin-card {
+                padding: 1.2rem;
+            }
+            .btn-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .btn {
+                text-align: center;
+            }
+            .footer-links {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .plugin-card h2 {
+                font-size: 1.5rem;
+            }
+            .plugin-card .plugin-meta {
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Nagłówek -->
+        <div class="header">
+            <h1>🗺️ Moje wtyczki QGIS</h1>
+            <div class="badge">
+                <i>⚡</i> Power EZiUDP · v.1.2
+            </div>
+        </div>
+
+        <!-- GŁÓWNA KARTA Wtyczki POWER EZiUDP -->
+        <div class="plugin-card">
+            <h2>
+                <span>⚡ Power EZiUDP</span>
+                <span style="font-size: 0.9rem; background: #d4e2ed; padding: 0.1rem 1rem; border-radius: 60px; font-weight: 400; color: #003353;">ID: 4294</span>
+            </h2>
+            <div class="plugin-meta">
+                <span>📌 WMS / WFS</span>
+                <span>⭐ 7 głosów</span>
+                <span>🇵🇱 Ewidencja zbiorów</span>
+            </div>
+
+            <div class="description">
+                <strong> [PL]</strong> Wtyczka pozwala na proste, szybkie przeszukiwanie i podpinanie usług WMS/WFS z ewidencji zbiorów i usług danych przestrzennych.<br>
+                <strong>[EN]</strong> Plugin allow for simple, fast search and add WMS/WFS services from polish site: "ewidencja zbiorów i usług danych przestrzennych".
+            </div>
+
+            <div class="btn-group">
+                <a href="https://plugins.qgis.org/plugins/Power_EZiUDP/#plugin-details" target="_blank" class="btn">
+                    🔍 Zobacz w repozytorium QGIS
+                </a>
+                <a href="https://plugins.qgis.org" target="_blank" class="btn btn-outline">
+                    🌐 Przejdź do plugins.qgis.org
+                </a>
+            </div>
+        </div>
+
+        <!-- SZEREG INFORMACJI DODATKOWYCH -->
+        <div class="info-section">
+            <div class="info-box">
+                <h3>📦 O wtyczce</h3>
+                <ul>
+                    <li><strong>Przeznaczenie:</strong> Szybkie wyszukiwanie i dodawanie usług WMS/WFS z polskiej ewidencji.</li>
+                    <li><strong>Obsługa:</strong> Intuicyjne GUI – wpisz frazę, wybierz usługę, dodaj do projektu.</li>
+                    <li><strong>Kompatybilność:</strong> QGIS 3.x (testowana na wersji 3.28 i nowszych).</li>
+                    <li><strong>Licencja:</strong> GNU GPL v2 – otwarte oprogramowanie.</li>
+                </ul>
+                <div style="margin-top: 1rem;">
+                    <span class="tag">WMS</span>
+                    <span class="tag">WFS</span>
+                    <span class="tag">Ewidencja</span>
+                    <span class="tag">Dane przestrzenne</span>
+                </div>
+            </div>
+
+            <div class="info-box">
+                <h3>📌 Przydatne linki</h3>
+                <ul>
+                    <li><a href="https://plugins.qgis.org/plugins/Power_EZiUDP/#plugin-details" target="_blank">Strona wtyczki Power EZiUDP</a></li>
+                    <li><a href="https://plugins.qgis.org" target="_blank">Główne repozytorium wtyczek QGIS</a></li>
+                    <li><a href="https://qgis.org/pl/docs/index.html" target="_blank">Dokumentacja QGIS (pyQGIS)</a></li>
+                    <li><a href="https://plugins.qgis.org/plugins/" target="_blank">Przeglądaj inne wtyczki</a></li>
+                </ul>
+                <div style="margin-top: 1rem; background: #e5eff8; padding: 0.5rem 1rem; border-radius: 40px; font-size: 0.9rem;">
+                    💡 <strong>Instalacja:</strong> Menedżer wtyczek QGIS → wyszukaj "Power EZiUDP"
+                </div>
+            </div>
+        </div>
+
+        <!-- DODATKOWA SEKCJA O REPOZYTORIUM -->
+        <div style="background: #eef4fa; border-radius: 20px; padding: 1.5rem; margin: 1.5rem 0 1rem 0;">
+            <h3 style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; color: #003350;">
+                <span>📋</span> O repozytorium plugins.qgis.org
+            </h3>
+            <p style="margin-bottom: 0.8rem;">
+                Oficjalne repozytorium wtyczek QGIS – miejsce, gdzie twórcy publikują swoje rozszerzenia. 
+                Wtyczki są niezależnie rozwijane, a ich autorzy odpowiadają za zgłoszenia błędów i nowe funkcje.
+            </p>
+            <div style="display: flex; flex-wrap: wrap; gap: 1rem 2rem; font-size: 0.95rem;">
+                <span><strong>🔹 Dla użytkowników:</strong> Instalacja bezpośrednio z QGIS.</span>
+                <span><strong>🔹 Dla twórców:</strong> <a href="https://plugins.qgis.org" target="_blank" style="color: #004466;">Przewodnik publikacji</a></span>
+            </div>
+        </div>
+
+        <!-- STOPKA / LINKI -->
+        <div class="footer-links">
+            <div class="repo-link">
+                <span style="margin-right: 0.3rem;">🔗</span>
+                <a href="https://plugins.qgis.org" target="_blank">plugins.qgis.org</a> – główne centrum wtyczek
+            </div>
+            <div class="note">
+                ⚡ Power EZiUDP · Wtyczka autorstwa <strong>TwojaNazwa</strong>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <a href="https://plugins.qgis.org/plugins/Power_EZiUDP/#plugin-details" target="_blank" style="color: #004466; text-decoration: none; border-bottom: 1px dotted #6b8fa5;">Szczegóły</a>
+                <span style="color: #6a8ba0;">|</span>
+                <a href="https://plugins.qgis.org" target="_blank" style="color: #004466; text-decoration: none; border-bottom: 1px dotted #6b8fa5;">Repozytorium</a>
+            </div>
+        </div>
+
+        <!-- mała informacja o tagach -->
+        <div style="margin-top: 1.2rem; font-size: 0.85rem; color: #4d6f86; text-align: center; border-top: 1px solid #deeaf5; padding-top: 1rem;">
+            Strona prywatna · Prezentacja wtyczek QGIS · Power EZiUDP
+        </div>
+    </div>
+</body>
+</html>
