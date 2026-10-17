@@ -1,428 +1,115 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moje wtyczki QGIS | Power EZiUDP</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
-            background: #f4f7fb;
-            color: #1e2b3c;
-            line-height: 1.6;
-            padding: 2rem 1rem;
-        }
-
-        .container {
-            max-width: 1100px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 32px;
-            box-shadow: 0 20px 40px -12px rgba(0, 20, 30, 0.25);
-            padding: 2.5rem 2rem;
-            transition: all 0.2s ease;
-        }
-
-        /* Nagłówek */
-        .header {
-            border-bottom: 2px solid #e9edf4;
-            padding-bottom: 1.5rem;
-            margin-bottom: 2rem;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .header h1 {
-            font-size: 2.2rem;
-            font-weight: 600;
-            background: linear-gradient(145deg, #2c3e50, #1a2a3a);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            letter-spacing: -0.5px;
-        }
-
-        .header .badge {
-            background: #1e3b4f;
-            color: white;
-            padding: 0.3rem 1rem;
-            border-radius: 60px;
-            font-size: 0.9rem;
-            font-weight: 500;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-        }
-
-        .header .badge i {
-            font-style: normal;
-            font-size: 1.1rem;
-        }
-
-        /* Karta wtyczki */
-        .plugin-card {
-            background: #f8faff;
-            border-radius: 24px;
-            padding: 1.8rem 2rem;
-            margin: 2rem 0 2.5rem 0;
-            border: 1px solid #e2e9f2;
-            box-shadow: 0 6px 14px rgba(0, 20, 30, 0.04);
-        }
-
-        .plugin-card h2 {
-            font-size: 1.9rem;
-            font-weight: 600;
-            color: #0b1e2b;
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-            flex-wrap: wrap;
-        }
-
-        .plugin-card .plugin-meta {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.8rem 1.8rem;
-            margin-top: 0.2rem;
-            font-size: 0.95rem;
-            color: #2c4a5e;
-        }
-
-        .plugin-card .plugin-meta span {
-            background: #e4ebf5;
-            padding: 0.2rem 0.8rem;
-            border-radius: 40px;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-        }
-
-        .plugin-card .description {
-            margin: 1.2rem 0 1.5rem 0;
-            padding: 1rem 1.2rem;
-            background: white;
-            border-radius: 16px;
-            border-left: 6px solid #3b6e8f;
-            font-size: 1.05rem;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
-        }
-
-        .plugin-card .description strong {
-            color: #004466;
-        }
-
-        .btn-group {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 0.8rem 1.2rem;
-            margin-top: 0.5rem;
-        }
-
-        .btn {
-            display: inline-block;
-            background: #1e3b4f;
-            color: white;
-            font-weight: 500;
-            padding: 0.7rem 1.8rem;
-            border-radius: 60px;
-            text-decoration: none;
-            transition: 0.2s;
-            border: 1px solid transparent;
-            font-size: 0.95rem;
-            box-shadow: 0 4px 8px rgba(0, 20, 30, 0.08);
-        }
-
-        .btn:hover {
-            background: #12303f;
-            transform: scale(1.02);
-            box-shadow: 0 8px 16px rgba(0, 20, 30, 0.12);
-        }
-
-        .btn-outline {
-            background: transparent;
-            color: #1e3b4f;
-            border: 1px solid #b6cbd9;
-            box-shadow: none;
-        }
-
-        .btn-outline:hover {
-            background: #e5eef7;
-            border-color: #7f9db3;
-            transform: none;
-        }
-
-        .btn i {
-            margin-right: 0.4rem;
-        }
-
-        /* Sekcja informacji */
-        .info-section {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 2rem;
-            margin: 2.5rem 0 2rem 0;
-        }
-
-        .info-box {
-            background: #f4f8fe;
-            border-radius: 20px;
-            padding: 1.6rem 1.8rem;
-            border: 1px solid #e2ebf5;
-        }
-
-        .info-box h3 {
-            font-size: 1.3rem;
-            font-weight: 600;
-            margin-bottom: 0.8rem;
-            color: #0b293b;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .info-box ul {
-            list-style: none;
-            padding-left: 0;
-        }
-
-        .info-box li {
-            padding: 0.4rem 0;
-            border-bottom: 1px dashed #d6e2ee;
-            display: flex;
-            align-items: baseline;
-            gap: 0.6rem;
-        }
-
-        .info-box li:last-child {
-            border-bottom: none;
-        }
-
-        .info-box li::before {
-            content: "▹";
-            color: #2f6a8a;
-            font-weight: bold;
-        }
-
-        .info-box a {
-            color: #1a5a7a;
-            text-decoration: none;
-            font-weight: 500;
-            border-bottom: 1px dotted #90b1c9;
-        }
-
-        .info-box a:hover {
-            color: #003753;
-            border-bottom: 2px solid #1f5a7a;
-        }
-
-        .tag-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            margin-top: 0.4rem;
-        }
-
-        .tag {
-            background: #dce8f2;
-            padding: 0.2rem 0.9rem;
-            border-radius: 40px;
-            font-size: 0.8rem;
-            color: #1f4157;
-            font-weight: 500;
-        }
-
-        .footer-links {
-            margin-top: 3rem;
-            padding-top: 2rem;
-            border-top: 2px solid #e7eef6;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .footer-links .repo-link {
-            background: #ecf3fa;
-            padding: 0.5rem 1.5rem;
-            border-radius: 60px;
-            font-size: 0.95rem;
-        }
-
-        .footer-links .repo-link a {
-            font-weight: 600;
-            color: #004466;
-            text-decoration: none;
-        }
-
-        .footer-links .repo-link a:hover {
-            text-decoration: underline;
-        }
-
-        .note {
-            font-size: 0.9rem;
-            color: #3d5c70;
-            background: #eef4fa;
-            padding: 0.6rem 1.2rem;
-            border-radius: 40px;
-        }
-
-        /* Responsywność */
-        @media (max-width: 720px) {
-            .container {
-                padding: 1.5rem 1rem;
-            }
-            .header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 0.5rem;
-            }
-            .header h1 {
-                font-size: 1.8rem;
-            }
-            .info-section {
-                grid-template-columns: 1fr;
-                gap: 1.2rem;
-            }
-            .plugin-card {
-                padding: 1.2rem;
-            }
-            .btn-group {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            .btn {
-                text-align: center;
-            }
-            .footer-links {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .plugin-card h2 {
-                font-size: 1.5rem;
-            }
-            .plugin-card .plugin-meta {
-                font-size: 0.85rem;
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>xN0rth</title>
+  <link rel="icon" href="assets/avatar.webp">
+  <meta name="theme-color" content="#c4161c">
+  <meta name="description" content="xN0rth — życie na edicie. Wszystkie linki: Kick, YouTube, Instagram, X, TikTok.">
+  <meta property="og:site_name" content="xN0rth">
+  <meta property="og:title" content="xN0rth - Wszystkie najważniejsze linki">
+  <meta property="og:description" content="xN0rth — życie na edicie. Wszystkie linki: Kick, YouTube, Instagram, X, TikTok.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="assets/banner.jpg">
+  <meta property="og:locale" content="pl_PL">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@xN0rthh">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <div class="container">
-        <!-- Nagłówek -->
-        <div class="header">
-            <h1>🗺️ Moje wtyczki QGIS</h1>
-            <div class="badge">
-                <i>⚡</i> Power EZiUDP · v.1.2
-            </div>
-        </div>
+  <div class="background-container">
+    <img draggable="false" src="assets/banner.jpg" class="background-image" alt="">
+    <div class="background-pattern"></div>
+  </div>
 
-        <!-- GŁÓWNA KARTA Wtyczki POWER EZiUDP -->
-        <div class="plugin-card">
-            <h2>
-                <span>⚡ Power EZiUDP</span>
-                <span style="font-size: 0.9rem; background: #d4e2ed; padding: 0.1rem 1rem; border-radius: 60px; font-weight: 400; color: #003353;">ID: 4294</span>
-            </h2>
-            <div class="plugin-meta">
-                <span>📌 WMS / WFS</span>
-                <span>⭐ 7 głosów</span>
-                <span>🇵🇱 Ewidencja zbiorów</span>
-            </div>
+  <div class="content-container">
+    <main class="content">
+      <div class="logo-container">
+        <img draggable="false" src="assets/avatar.webp" class="logo" alt="xN0rth">
+      </div>
+      <h1 class="name">xN0rth</h1>
+      <div class="description">
+        <p>życie na edicie ⚔️</p>
+        <p>Poniżej znajdziecie linki do moich sociali</p>
+      </div>
 
-            <div class="description">
-                <strong> [PL]</strong> Wtyczka pozwala na proste, szybkie przeszukiwanie i podpinanie usług WMS/WFS z ewidencji zbiorów i usług danych przestrzennych.<br>
-                <strong>[EN]</strong> Plugin allow for simple, fast search and add WMS/WFS services from polish site: "ewidencja zbiorów i usług danych przestrzennych".
-            </div>
+      <div class="links">
+        <a class="link link-kick" href="https://kick.com/xn0rth" rel="noopener noreferrer" target="_blank">
+          <div class="icon">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 2h7v5h2V5h2V2h7v7h-2v2h-2v2h2v2h2v7h-7v-3h-2v-2H9v5H2z"/></svg>
+          </div>
+          <div class="info">
+            <div class="title">Kick</div>
+            <div class="url">kick.com/xn0rth</div>
+          </div>
+        </a>
+        <a class="link" href="https://youtube.com/xN0rth" rel="noopener noreferrer" target="_blank">
+          <div class="icon">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+          </div>
+          <div class="info">
+            <div class="title">YouTube</div>
+            <div class="url">youtube.com/xN0rth</div>
+          </div>
+        </a>
+        <a class="link" href="https://instagram.com/n0rthh" rel="noopener noreferrer" target="_blank">
+          <div class="icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="2" width="20" height="20" rx="5.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.6" cy="6.4" r="1" fill="currentColor" stroke="none"/></svg>
+          </div>
+          <div class="info">
+            <div class="title">Instagram</div>
+            <div class="url">instagram.com/n0rthh</div>
+          </div>
+        </a>
+        <a class="link" href="https://x.com/xN0rthh" rel="noopener noreferrer" target="_blank">
+          <div class="icon">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg>
+          </div>
+          <div class="info">
+            <div class="title">X (Twitter)</div>
+            <div class="url">x.com/xN0rthh</div>
+          </div>
+        </a>
+        <a class="link" href="https://tiktok.com/@xn0rthh" rel="noopener noreferrer" target="_blank">
+          <div class="icon">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>
+          </div>
+          <div class="info">
+            <div class="title">TikTok</div>
+            <div class="url">tiktok.com/@xn0rthh</div>
+          </div>
+        </a>
+      </div>
+    </main>
 
-            <div class="btn-group">
-                <a href="https://plugins.qgis.org/plugins/Power_EZiUDP/#plugin-details" target="_blank" class="btn">
-                    🔍 Zobacz w repozytorium QGIS
-                </a>
-                <a href="https://plugins.qgis.org" target="_blank" class="btn btn-outline">
-                    🌐 Przejdź do plugins.qgis.org
-                </a>
-            </div>
-        </div>
+    <footer class="footer">
+      <div class="footer-content">
+        <img draggable="false" src="assets/avatar.webp" height="30" width="30" alt="">
+        <p>© <span id="year"></span> by xN0rth</p>
+      </div>
+      <div class="footer-clock"><p><span id="time"></span></p></div>
+    </footer>
+  </div>
 
-        <!-- SZEREG INFORMACJI DODATKOWYCH -->
-        <div class="info-section">
-            <div class="info-box">
-                <h3>📦 O wtyczce</h3>
-                <ul>
-                    <li><strong>Przeznaczenie:</strong> Szybkie wyszukiwanie i dodawanie usług WMS/WFS z polskiej ewidencji.</li>
-                    <li><strong>Obsługa:</strong> Intuicyjne GUI – wpisz frazę, wybierz usługę, dodaj do projektu.</li>
-                    <li><strong>Kompatybilność:</strong> QGIS 3.x (testowana na wersji 3.28 i nowszych).</li>
-                    <li><strong>Licencja:</strong> GNU GPL v2 – otwarte oprogramowanie.</li>
-                </ul>
-                <div style="margin-top: 1rem;">
-                    <span class="tag">WMS</span>
-                    <span class="tag">WFS</span>
-                    <span class="tag">Ewidencja</span>
-                    <span class="tag">Dane przestrzenne</span>
-                </div>
-            </div>
+  <script>
+    // Block right-click on background
+    document.querySelector(".background-image").addEventListener("contextmenu", e => e.preventDefault())
 
-            <div class="info-box">
-                <h3>📌 Przydatne linki</h3>
-                <ul>
-                    <li><a href="https://plugins.qgis.org/plugins/Power_EZiUDP/#plugin-details" target="_blank">Strona wtyczki Power EZiUDP</a></li>
-                    <li><a href="https://plugins.qgis.org" target="_blank">Główne repozytorium wtyczek QGIS</a></li>
-                    <li><a href="https://qgis.org/pl/docs/index.html" target="_blank">Dokumentacja QGIS (pyQGIS)</a></li>
-                    <li><a href="https://plugins.qgis.org/plugins/" target="_blank">Przeglądaj inne wtyczki</a></li>
-                </ul>
-                <div style="margin-top: 1rem; background: #e5eff8; padding: 0.5rem 1rem; border-radius: 40px; font-size: 0.9rem;">
-                    💡 <strong>Instalacja:</strong> Menedżer wtyczek QGIS → wyszukaj "Power EZiUDP"
-                </div>
-            </div>
-        </div>
+    // Current year
+    document.getElementById("year").textContent = new Date().getFullYear()
 
-        <!-- DODATKOWA SEKCJA O REPOZYTORIUM -->
-        <div style="background: #eef4fa; border-radius: 20px; padding: 1.5rem; margin: 1.5rem 0 1rem 0;">
-            <h3 style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; color: #003350;">
-                <span>📋</span> O repozytorium plugins.qgis.org
-            </h3>
-            <p style="margin-bottom: 0.8rem;">
-                Oficjalne repozytorium wtyczek QGIS – miejsce, gdzie twórcy publikują swoje rozszerzenia. 
-                Wtyczki są niezależnie rozwijane, a ich autorzy odpowiadają za zgłoszenia błędów i nowe funkcje.
-            </p>
-            <div style="display: flex; flex-wrap: wrap; gap: 1rem 2rem; font-size: 0.95rem;">
-                <span><strong>🔹 Dla użytkowników:</strong> Instalacja bezpośrednio z QGIS.</span>
-                <span><strong>🔹 Dla twórców:</strong> <a href="https://plugins.qgis.org" target="_blank" style="color: #004466;">Przewodnik publikacji</a></span>
-            </div>
-        </div>
-
-        <!-- STOPKA / LINKI -->
-        <div class="footer-links">
-            <div class="repo-link">
-                <span style="margin-right: 0.3rem;">🔗</span>
-                <a href="https://plugins.qgis.org" target="_blank">plugins.qgis.org</a> – główne centrum wtyczek
-            </div>
-            <div class="note">
-                ⚡ Power EZiUDP · Wtyczka autorstwa <strong>TwojaNazwa</strong>
-            </div>
-            <div style="display: flex; gap: 0.5rem;">
-                <a href="https://plugins.qgis.org/plugins/Power_EZiUDP/#plugin-details" target="_blank" style="color: #004466; text-decoration: none; border-bottom: 1px dotted #6b8fa5;">Szczegóły</a>
-                <span style="color: #6a8ba0;">|</span>
-                <a href="https://plugins.qgis.org" target="_blank" style="color: #004466; text-decoration: none; border-bottom: 1px dotted #6b8fa5;">Repozytorium</a>
-            </div>
-        </div>
-
-        <!-- mała informacja o tagach -->
-        <div style="margin-top: 1.2rem; font-size: 0.85rem; color: #4d6f86; text-align: center; border-top: 1px solid #deeaf5; padding-top: 1rem;">
-            Strona prywatna · Prezentacja wtyczek QGIS · Power EZiUDP
-        </div>
-    </div>
+    // Clock
+    function updateTime() {
+      const now = new Date()
+      const hours = String(now.getHours()).padStart(2, "0")
+      const minutes = String(now.getMinutes()).padStart(2, "0")
+      document.getElementById("time").textContent = `${hours}:${minutes}`
+    }
+    updateTime()
+    setInterval(updateTime, 1000)
+  </script>
 </body>
 </html>
