@@ -197,6 +197,7 @@ a { color: inherit; text-decoration: none; }
 .content .links .link {
   position: relative;
   display: flex;
+  flex-shrink: 0;
   margin: 0 15px;
   padding: 14px 15px;
   background-color: var(--card);
@@ -225,8 +226,9 @@ a { color: inherit; text-decoration: none; }
 .content .links .link:hover::before,
 .content .links .link:focus-visible::before { transform: translateX(0); }
 
-.content .links .link-kick { outline-color: #53fc18; }
-.content .links .link-kick .icon { color: #53fc18; }
+/* Per-link accent colour (set from admin panel) */
+.content .links .link.has-accent { outline-color: var(--accent); }
+.content .links .link.has-accent .icon { color: var(--accent); }
 
 .content .links .icon {
   position: absolute;

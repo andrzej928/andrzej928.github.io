@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Panel admina</title>
+  <link rel="icon" href="assets/avatar.webp">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+  <header class="topbar">
+    <h1>Panel admina <small>zakładki strony</small></h1>
+    <span id="status" class="status">Wczytywanie…</span>
+    <div class="toolbar">
+      <button id="btn-reload" title="Wczytaj ponownie z serwera">⟳ Wczytaj</button>
+      <button id="btn-download" title="Pobierz config.json">⬇ Pobierz JSON</button>
+      <button id="btn-import" title="Wczytaj config.json z dysku">⬆ Importuj</button>
+      <button id="btn-save" class="primary">💾 Zapisz na GitHub</button>
+      <input id="import-file" type="file" accept=".json,application/json" hidden>
+    </div>
+  </header>
+
+  <div class="layout">
+    <div class="editor">
+      <section class="box">
+        <details class="settings" id="gh-settings">
+          <summary>⚙ Połączenie z GitHub</summary>
+          <div class="row two">
+            <label class="field"><span>Właściciel repo</span><input type="text" id="gh-owner"></label>
+            <label class="field"><span>Repozytorium</span><input type="text" id="gh-repo"></label>
+          </div>
+          <div class="row two">
+            <label class="field"><span>Gałąź</span><input type="text" id="gh-branch"></label>
+            <label class="field"><span>Token (fine-grained PAT)</span><input type="password" id="gh-token" autocomplete="off" placeholder="github_pat_…"></label>
+          </div>
+          <label class="check"><input type="checkbox" id="gh-remember"> Zapamiętaj token w tej przeglądarce</label>
+          <p class="hint">
+            Zapis działa przez API GitHuba – zmiany trafiają jako commit do pliku <code>data/config.json</code>,
+            a GitHub Pages publikuje je zwykle w ciągu 1–2 minut.<br>
+            Token utworzysz w <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub → Settings → Developer settings → Fine-grained tokens</a>:
+            dostęp tylko do tego repozytorium, uprawnienie <b>Contents: Read and write</b>.
+            Bez tokenu możesz edytować i pobrać plik JSON, a potem wrzucić go ręcznie.
+          </p>
+        </details>
+      </section>
+
+      <section class="box">
+        <h2>Profil</h2>
+        <label class="field"><span>Nazwa</span><input type="text" id="p-name"></label>
+        <label class="field"><span>Opis (każda linia = osobny akapit)</span><textarea id="p-desc" rows="3"></textarea></label>
+      </section>
+
+      <section class="box">
+        <h2>Zakładki</h2>
+        <div id="links" class="links-list"></div>
+        <button id="btn-add">＋ Dodaj zakładkę</button>
+      </section>
+    </div>
+
+    <aside class="preview">
+      <section class="box">
+        <h2>Podgląd</h2>
+        <iframe id="preview" src="index.html?preview=1" title="Podgląd strony"></iframe>
+      </section>
+    </aside>
+  </div>
+
+  <script src="js/icons.js"></script>
+  <script>
+    const CONFIG_PATH = "data/config.json"
+    const DEFAULT_GH = { owner: "andrzej928", repo: "andrzej928.github.io", branch: "main" }
+
+    let state = { profile: { name: "", description: [] }, links: [] }
+    let remoteSha = null
+    let dirty = false
+    let nextId = 1
+    const openCards = new Set()
+
+    const $ = id => document.getElementById(id)
+
+    // ---------- small DOM helper ----------
+    function h(tag, props = {}, ...children) {
+      const el = document.createElement(tag)
+      for (const [k, v] of Object.entries(props)) {
+        if (v == null) continue
+        if (k.startsWith("on")) el.addEventListener(k.slice(2), v)
+        else if (k === "class") el.className = v
+        else if (k === "html") el.innerHTML = v
+        else if (k in el && typeof v !== "string") el[k] = v
+        else if (k === "value") el.value = v
+        else el.setAttribute(k, v)
+      }
+      el.append(...children.flat().filter(c => c != null && c !== false))
+      return el
+    }
+
+    function setStatus(text, kind = "") {
+      const s = $("status")
+      s.textContent = text
+      s.className = "status " + kind
+    }
+
+    function markDirty() {
+      dirty = true
+      setStatus("Niezapisane zmiany", "dirty")
+      schedulePreview()
+    }
+
+    // ---------- GitHub settings ----------
+    function loadGhSettings() {
+      let saved = {}
+      try { saved = JSON.parse(localStorage.getItem("admin.gh") || "{}") } catch {}
+      let token = ""
+      try { token = localStorage.getItem("admin.token") || sessionStorage.getItem("admin.token") || "" } catch {}
+      $("gh-owner").value = saved.owner || DEFAULT_GH.owner
+      $("gh-repo").value = saved.repo || DEFAULT_GH.repo
+      $("gh-branch").value = saved.branch || DEFAULT_GH.branch
+      $("gh-token").value = token
+      $("gh-remember").checked = !!(saved.remember && token)
+      if (!token) $("gh-settings").open = true
+    }
+
+    function saveGhSettings() {
+      const gh = getGh()
+      try {
+        localStorage.setItem("admin.gh", JSON.stringify({ owner: gh.owner, repo: gh.repo, branch: gh.branch, remember: $("gh-remember").checked }))
+        localStorage.removeItem("admin.token")
+        sessionStorage.removeItem("admin.token")
+        if (gh.token) ($("gh-remember").checked ? localStorage : sessionStorage).setItem("admin.token", gh.token)
+      } catch {}
+    }
+
+    function getGh() {
+      return {
+        owner: $("gh-owner").value.trim(),
+        repo: $("gh-repo").value.trim(),
+        branch: $("gh-branch").value.trim() || "main",
+        token: $("gh-token").value.trim()
+      }
+    }
+
+    for (const id of ["gh-owner", "gh-repo", "gh-branch", "gh-token", "gh-remember"]) {
+      $(id).addEventListener("change", saveGhSettings)
+    }
+
+    // ---------- UTF-8 safe base64 ----------
+    function toBase64(str) {
+      const bytes = new TextEncoder().encode(str)
+      let bin = ""
+      for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
+      return btoa(bin)
+    }
+    function fromBase64(b64) {
+      const bin = atob(b64.replace(/\s/g, ""))
+      return new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0)))
+    }
+
+    function ghUrl(gh) {
+      return `https://api.github.com/repos/${encodeURIComponent(gh.owner)}/${encodeURIComponent(gh.repo)}/contents/${CONFIG_PATH}`
+    }
+    function ghHeaders(gh) {
+      return { "Accept": "application/vnd.github+json", "Authorization": `Bearer ${gh.token}`, "X-GitHub-Api-Version": "2022-11-28" }
+    }
+
+    async function ghGet(gh) {
+      const r = await fetch(`${ghUrl(gh)}?ref=${encodeURIComponent(gh.branch)}&t=${Date.now()}`, { headers: ghHeaders(gh), cache: "no-store" })
+      if (r.status === 404) return null
+      if (!r.ok) throw new Error(`GitHub: ${r.status} ${(await r.json().catch(() => ({}))).message || ""}`)
+      const data = await r.json()
+      return { sha: data.sha, config: JSON.parse(fromBase64(data.content)) }
+    }
+
+    // ---------- Load ----------
+    async function load() {
+      if (dirty && !confirm("Masz niezapisane zmiany. Wczytać ponownie i je odrzucić?")) return
+      setStatus("Wczytywanie…")
+      const gh = getGh()
+      try {
+        let cfg
+        if (gh.token) {
+          const res = await ghGet(gh)
+          if (res) { cfg = res.config; remoteSha = res.sha }
+        }
+        if (!cfg) {
+          const r = await fetch(`${CONFIG_PATH}?v=${Date.now()}`, { cache: "no-store" })
+          if (!r.ok) throw new Error(`Nie znaleziono ${CONFIG_PATH} (${r.status})`)
+          cfg = await r.json()
+        }
+        setConfig(cfg)
+        dirty = false
+        setStatus(gh.token ? "Wczytano z GitHub" : "Wczytano (bez tokenu – tylko podgląd/eksport)", "ok")
+      } catch (e) {
+        console.error(e)
+        setStatus("Błąd wczytywania: " + e.message, "err")
+      }
+    }
+
+    function setConfig(cfg) {
+      state = {
+        profile: {
+          name: cfg.profile?.name || "",
+          description: Array.isArray(cfg.profile?.description) ? cfg.profile.description : []
+        },
+        links: (cfg.links || []).map(l => ({ _id: nextId++, visible: true, ...l }))
+      }
+      openCards.clear()
+      renderAll()
+    }
+
+    // ---------- Serialize ----------
+    function toConfig() {
+      return {
+        profile: {
+          name: state.profile.name.trim(),
+          description: state.profile.description.map(s => s.trim()).filter(Boolean)
+        },
+        links: state.links.map(l => {
+          const out = {
+            title: (l.title || "").trim(),
+            url: (l.url || "").trim(),
+            subtitle: (l.subtitle || "").trim(),
+            icon: l.icon || "link"
+          }
+          if (out.icon === "custom") out.customSvg = l.customSvg || ""
+          if (l.color) out.color = l.color
+          out.visible = l.visible !== false
+          return out
+        })
+      }
+    }
+
+    function validate(cfg) {
+      const errors = []
+      cfg.links.forEach((l, i) => {
+        if (!l.title) errors.push(`Zakładka #${i + 1}: brak tytułu`)
+        if (!l.url) errors.push(`Zakładka #${i + 1}: brak adresu URL`)
+        else if (!/^(https?:\/\/|mailto:)/i.test(l.url)) errors.push(`Zakładka #${i + 1}: URL musi zaczynać się od https:// lub mailto:`)
+      })
+      return errors
+    }
+
+    // ---------- Save ----------
+    async function save() {
+      const gh = getGh()
+      if (!gh.token) {
+        $("gh-settings").open = true
+        $("gh-token").focus()
+        setStatus("Podaj token GitHub, aby zapisać (albo pobierz JSON)", "err")
+        return
+      }
+      const cfg = toConfig()
+      const errors = validate(cfg)
+      if (errors.length) { alert("Popraw błędy:\n\n" + errors.join("\n")); return }
+
+      saveGhSettings()
+      $("btn-save").disabled = true
+      setStatus("Zapisywanie…")
+      try {
+        // Always fetch the latest sha to avoid conflicts
+        const current = await ghGet(gh)
+        if (current && remoteSha && current.sha !== remoteSha &&
+            !confirm("Plik na GitHubie zmienił się od czasu wczytania. Nadpisać go Twoją wersją?")) {
+          setStatus("Zapis anulowany", "err")
+          return
+        }
+        const body = {
+          message: "Aktualizacja zakładek (panel admina)",
+          content: toBase64(JSON.stringify(cfg, null, 2) + "\n"),
+          branch: gh.branch
+        }
+        if (current) body.sha = current.sha
+        const r = await fetch(ghUrl(gh), { method: "PUT", headers: { ...ghHeaders(gh), "Content-Type": "application/json" }, body: JSON.stringify(body) })
+        const data = await r.json().catch(() => ({}))
+        if (!r.ok) throw new Error(`${r.status} ${data.message || ""}`)
+        remoteSha = data.content?.sha || null
+        dirty = false
+        setStatus("Zapisano ✔ – strona odświeży się za ok. 1–2 min", "ok")
+      } catch (e) {
+        console.error(e)
+        setStatus("Błąd zapisu: " + e.message, "err")
+      } finally {
+        $("btn-save").disabled = false
+      }
+    }
+
+    // ---------- Import / export ----------
+    function download() {
+      const blob = new Blob([JSON.stringify(toConfig(), null, 2) + "\n"], { type: "application/json" })
+      const a = h("a", { href: URL.createObjectURL(blob), download: "config.json" })
+      document.body.append(a)
+      a.click()
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove() }, 1000)
+    }
+
+    $("import-file").addEventListener("change", async e => {
+      const file = e.target.files[0]
+      e.target.value = ""
+      if (!file) return
+      try {
+        setConfig(JSON.parse(await file.text()))
+        markDirty()
+      } catch (err) {
+        alert("Nieprawidłowy plik JSON: " + err.message)
+      }
+    })
+
+    // ---------- Rendering ----------
+    function renderAll() {
+      $("p-name").value = state.profile.name
+      $("p-desc").value = state.profile.description.join("\n")
+      renderLinks()
+      schedulePreview()
+    }
+
+    $("p-name").addEventListener("input", e => { state.profile.name = e.target.value; markDirty() })
+    $("p-desc").addEventListener("input", e => { state.profile.description = e.target.value.split("\n"); markDirty() })
+
+    function iconOptions(selected) {
+      const opts = Object.entries(ICONS).map(([key, v]) => h("option", { value: key, selected: key === selected }, v.label))
+      opts.push(h("option", { value: "custom", selected: selected === "custom" }, "Własna ikona (SVG)"))
+      return opts
+    }
+
+    let dragFrom = null
+
+    function renderLinks() {
+      const list = $("links")
+      list.replaceChildren(...state.links.map((link, index) => linkCard(link, index)))
+      if (!state.links.length) list.append(h("p", { class: "hint" }, "Brak zakładek – dodaj pierwszą poniżej."))
+    }
+
+    function linkCard(link, index) {
+      const iconBox = h("span", { class: "card-icon", html: iconFor(link) })
+      if (link.color) iconBox.style.color = link.color
+      const titleEl = h("strong", {}, link.title || "(bez tytułu)")
+      const subEl = h("small", {}, link.subtitle || link.url || "")
+
+      const update = (field, rerenderHeader = true) => e => {
+        link[field] = e.target.type === "checkbox" ? e.target.checked : e.target.value
+        if (rerenderHeader) {
+          titleEl.textContent = link.title || "(bez tytułu)"
+          subEl.textContent = link.subtitle || link.url || ""
+          iconBox.innerHTML = iconFor(link)
+          iconBox.style.color = link.color || ""
+        }
+        markDirty()
+      }
+
+      const act = (fn) => e => { e.preventDefault(); e.stopPropagation(); fn(); markDirty(); renderLinks() }
+
+      const handle = h("span", { class: "handle", title: "Przeciągnij, aby zmienić kolejność" }, "⠿")
+
+      const visibleToggle = h("button", {
+        class: "icon-btn",
+        title: link.visible === false ? "Ukryta – kliknij, aby pokazać" : "Widoczna – kliknij, aby ukryć"
+      }, link.visible === false ? "🙈" : "👁")
+      visibleToggle.addEventListener("click", act(() => { link.visible = link.visible === false }))
+
+      const summary = h("summary", {},
+        handle, iconBox,
+        h("div", { class: "card-title" }, titleEl, subEl),
+        h("div", { class: "card-actions" },
+          visibleToggle,
+          h("button", { class: "icon-btn", title: "W górę", disabled: index === 0, onclick: act(() => move(index, index - 1)) }, "↑"),
+          h("button", { class: "icon-btn", title: "W dół", disabled: index === state.links.length - 1, onclick: act(() => move(index, index + 1)) }, "↓"),
+          h("button", { class: "icon-btn", title: "Duplikuj", onclick: act(() => {
+            const copy = { ...link, _id: nextId++, title: link.title + " (kopia)" }
+            state.links.splice(index + 1, 0, copy)
+            openCards.add(copy._id)
+          }) }, "⧉"),
+          h("button", { class: "icon-btn danger", title: "Usuń", onclick: e => {
+            e.preventDefault(); e.stopPropagation()
+            if (!confirm(`Usunąć zakładkę „${link.title || "bez tytułu"}”?`)) return
+            state.links.splice(index, 1); markDirty(); renderLinks()
+          } }, "✕")
+        )
+      )
+
+      const customSvgField = h("label", { class: "field", style: link.icon === "custom" ? "" : "display:none" },
+        h("span", {}, "Kod SVG ikony (użyj fill=\"currentColor\", aby działał kolor)"),
+        h("textarea", { class: "code", rows: 3, value: link.customSvg || "", oninput: update("customSvg") })
+      )
+
+      const colorInput = h("input", { type: "color", value: link.color || "#c4161c", disabled: !link.color })
+      const colorCheck = h("input", { type: "checkbox", checked: !!link.color })
+      colorCheck.addEventListener("change", e => {
+        colorInput.disabled = !e.target.checked
+        link.color = e.target.checked ? colorInput.value : ""
+        iconBox.style.color = link.color
+        markDirty()
+      })
+      colorInput.addEventListener("input", e => { link.color = e.target.value; iconBox.style.color = link.color; markDirty() })
+
+      const body = h("div", { class: "card-body" },
+        h("div", { class: "row two" },
+          h("label", { class: "field" }, h("span", {}, "Tytuł"), h("input", { type: "text", value: link.title || "", oninput: update("title") })),
+          h("label", { class: "field" }, h("span", {}, "Podpis (np. skrócony adres)"), h("input", { type: "text", value: link.subtitle || "", oninput: update("subtitle") }))
+        ),
+        h("label", { class: "field" }, h("span", {}, "Adres URL"),
+          h("input", { type: "url", value: link.url || "", placeholder: "https://…", oninput: update("url") })),
+        h("div", { class: "row two" },
+          h("label", { class: "field" }, h("span", {}, "Ikona"),
+            h("select", { onchange: e => { update("icon")(e); customSvgField.style.display = link.icon === "custom" ? "" : "none" } }, iconOptions(link.icon))),
+          h("div", { class: "field" }, h("span", { style: "display:block;font-size:12px;color:var(--muted);margin-bottom:4px" }, "Kolor akcentu"),
+            h("div", { class: "color-row" }, h("label", { class: "check" }, colorCheck, "własny kolor"), colorInput))
+        ),
+        customSvgField
+      )
+
+      const card = h("details", { class: "link-card" + (link.visible === false ? " hidden-link" : ""), open: openCards.has(link._id) }, summary, body)
+      card.addEventListener("toggle", () => card.open ? openCards.add(link._id) : openCards.delete(link._id))
+
+      // Drag & drop (only when grabbed by the handle)
+      handle.addEventListener("mousedown", () => { card.draggable = true })
+      handle.addEventListener("touchstart", () => { card.draggable = true }, { passive: true })
+      card.addEventListener("dragstart", e => { dragFrom = index; card.classList.add("dragging"); e.dataTransfer.effectAllowed = "move" })
+      card.addEventListener("dragend", () => { card.draggable = false; card.classList.remove("dragging"); dragFrom = null })
+      card.addEventListener("dragover", e => { if (dragFrom === null) return; e.preventDefault(); card.classList.add("drag-over") })
+      card.addEventListener("dragleave", () => card.classList.remove("drag-over"))
+      card.addEventListener("drop", e => {
+        e.preventDefault()
+        card.classList.remove("drag-over")
+        if (dragFrom !== null && dragFrom !== index) { move(dragFrom, index); markDirty(); renderLinks() }
+      })
+
+      return card
+    }
+
+    function move(from, to) {
+      if (to < 0 || to >= state.links.length) return
+      const [item] = state.links.splice(from, 1)
+      state.links.splice(to, 0, item)
+    }
+
+    $("btn-add").addEventListener("click", () => {
+      const link = { _id: nextId++, title: "Nowa zakładka", url: "https://", subtitle: "", icon: "link", visible: true }
+      state.links.push(link)
+      openCards.add(link._id)
+      markDirty()
+      renderLinks()
+      $("links").lastElementChild.scrollIntoView({ behavior: "smooth", block: "center" })
+    })
+
+    // ---------- Live preview ----------
+    let previewTimer = null
+    function schedulePreview() {
+      clearTimeout(previewTimer)
+      previewTimer = setTimeout(pushPreview, 150)
+    }
+    function pushPreview() {
+      const win = $("preview").contentWindow
+      if (win && typeof win.renderConfig === "function") win.renderConfig(toConfig())
+    }
+    $("preview").addEventListener("load", pushPreview)
+
+    // ---------- Wiring ----------
+    $("btn-save").addEventListener("click", save)
+    $("btn-reload").addEventListener("click", load)
+    $("btn-download").addEventListener("click", download)
+    $("btn-import").addEventListener("click", () => $("import-file").click())
+
+    document.addEventListener("keydown", e => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); save() }
+    })
+    window.addEventListener("beforeunload", e => { if (dirty) { e.preventDefault(); e.returnValue = "" } })
+
+    loadGhSettings()
+    load()
+  </script>
+</body>
+</html>

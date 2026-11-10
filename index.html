@@ -31,69 +31,21 @@
         <img draggable="false" src="assets/avatar.webp" class="logo" alt="xN0rth">
       </div>
       <h1 class="name">xN0rth</h1>
-      <div class="description">
-        <p>życie na edicie ⚔️</p>
-        <p>Poniżej znajdziecie linki do moich sociali</p>
-      </div>
+      <div class="description"></div>
 
-      <div class="links">
-        <a class="link link-kick" href="https://kick.com/xn0rth" rel="noopener noreferrer" target="_blank">
-          <div class="icon">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 2h7v5h2V5h2V2h7v7h-2v2h-2v2h2v2h2v7h-7v-3h-2v-2H9v5H2z"/></svg>
-          </div>
-          <div class="info">
-            <div class="title">Kick</div>
-            <div class="url">kick.com/xn0rth</div>
-          </div>
-        </a>
-        <a class="link" href="https://youtube.com/xN0rth" rel="noopener noreferrer" target="_blank">
-          <div class="icon">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-          </div>
-          <div class="info">
-            <div class="title">YouTube</div>
-            <div class="url">youtube.com/xN0rth</div>
-          </div>
-        </a>
-        <a class="link" href="https://instagram.com/n0rthh" rel="noopener noreferrer" target="_blank">
-          <div class="icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="2" y="2" width="20" height="20" rx="5.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.6" cy="6.4" r="1" fill="currentColor" stroke="none"/></svg>
-          </div>
-          <div class="info">
-            <div class="title">Instagram</div>
-            <div class="url">instagram.com/n0rthh</div>
-          </div>
-        </a>
-        <a class="link" href="https://x.com/xN0rthh" rel="noopener noreferrer" target="_blank">
-          <div class="icon">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"/></svg>
-          </div>
-          <div class="info">
-            <div class="title">X (Twitter)</div>
-            <div class="url">x.com/xN0rthh</div>
-          </div>
-        </a>
-        <a class="link" href="https://tiktok.com/@xn0rthh" rel="noopener noreferrer" target="_blank">
-          <div class="icon">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>
-          </div>
-          <div class="info">
-            <div class="title">TikTok</div>
-            <div class="url">tiktok.com/@xn0rthh</div>
-          </div>
-        </a>
-      </div>
+      <div class="links"></div>
     </main>
 
     <footer class="footer">
       <div class="footer-content">
         <img draggable="false" src="assets/avatar.webp" height="30" width="30" alt="">
-        <p>© <span id="year"></span> by xN0rth</p>
+        <p>© <span id="year"></span> by <span id="footer-name">xN0rth</span></p>
       </div>
       <div class="footer-clock"><p><span id="time"></span></p></div>
     </footer>
   </div>
 
+  <script src="js/icons.js"></script>
   <script>
     // Block right-click on background
     document.querySelector(".background-image").addEventListener("contextmenu", e => e.preventDefault())
@@ -110,6 +62,64 @@
     }
     updateTime()
     setInterval(updateTime, 1000)
+
+    // ---------- Links rendered from data/config.json ----------
+    function safeUrl(u) {
+      try {
+        const url = new URL(u, location.href)
+        return ["http:", "https:", "mailto:"].includes(url.protocol) ? url.href : "#"
+      } catch { return "#" }
+    }
+
+    function el(tag, cls, text) {
+      const e = document.createElement(tag)
+      if (cls) e.className = cls
+      if (text != null) e.textContent = text
+      return e
+    }
+
+    // Exposed so admin.html can render a live preview
+    window.renderConfig = function (cfg) {
+      const profile = cfg.profile || {}
+      if (profile.name) {
+        document.querySelector(".name").textContent = profile.name
+        document.getElementById("footer-name").textContent = profile.name
+        document.title = profile.name
+      }
+
+      const desc = document.querySelector(".description")
+      desc.replaceChildren(...(profile.description || []).map(line => el("p", null, line)))
+
+      const links = document.querySelector(".links")
+      links.replaceChildren(...(cfg.links || []).filter(l => l.visible !== false).map(l => {
+        const a = el("a", "link")
+        a.href = safeUrl(l.url)
+        a.target = "_blank"
+        a.rel = "noopener noreferrer"
+        if (l.color) {
+          a.classList.add("has-accent")
+          a.style.setProperty("--accent", l.color)
+        }
+        const icon = el("div", "icon")
+        icon.innerHTML = iconFor(l)
+        const info = el("div", "info")
+        info.append(el("div", "title", l.title || ""))
+        if (l.subtitle) info.append(el("div", "url", l.subtitle))
+        a.append(icon, info)
+        return a
+      }))
+    }
+
+    // In preview mode admin.html pushes the config itself
+    if (!new URLSearchParams(location.search).has("preview")) {
+      fetch("data/config.json?v=" + Date.now(), { cache: "no-store" })
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(renderConfig)
+        .catch(err => {
+          console.error("Nie udało się wczytać data/config.json", err)
+          document.querySelector(".links").replaceChildren(el("p", "description", "Nie udało się wczytać linków."))
+        })
+    }
   </script>
 </body>
 </html>

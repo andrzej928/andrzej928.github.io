@@ -1,0 +1,47 @@
+{
+  "profile": {
+    "name": "xN0rth",
+    "description": [
+      "życie na edicie ⚔️",
+      "Poniżej znajdziecie linki do moich sociali"
+    ]
+  },
+  "links": [
+    {
+      "title": "Kick",
+      "url": "https://kick.com/xn0rth",
+      "subtitle": "kick.com/xn0rth",
+      "icon": "kick",
+      "color": "#53fc18",
+      "visible": true
+    },
+    {
+      "title": "YouTube",
+      "url": "https://youtube.com/xN0rth",
+      "subtitle": "youtube.com/xN0rth",
+      "icon": "youtube",
+      "visible": true
+    },
+    {
+      "title": "Instagram",
+      "url": "https://instagram.com/n0rthh",
+      "subtitle": "instagram.com/n0rthh",
+      "icon": "instagram",
+      "visible": true
+    },
+    {
+      "title": "X (Twitter)",
+      "url": "https://x.com/xN0rthh",
+      "subtitle": "x.com/xN0rthh",
+      "icon": "x",
+      "visible": true
+    },
+    {
+      "title": "TikTok",
+      "url": "https://tiktok.com/@xn0rthh",
+      "subtitle": "tiktok.com/@xn0rthh",
+      "icon": "tiktok",
+      "visible": true
+    }
+  ]
+}
