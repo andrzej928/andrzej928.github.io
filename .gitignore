@@ -1,0 +1,18 @@
+# IDE / edytory
+.idea/
+.vscode/
+*.iml
+*.swp
+*~
+
+# System
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Lokalne / tymczasowe
+*.log
+*.tmp
+.env
+.env.*
+node_modules/
