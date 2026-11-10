@@ -164,5 +164,41 @@ input[type=color] { width: 44px; height: 32px; padding: 0; border: 1px solid var
 
 .hint { color: var(--muted); font-size: 12.5px; line-height: 1.5; }
 .hint a { color: var(--red-bright); }
+/* ---------- Lock screen ---------- */
+.lock { display: none; }
+body.locked .topbar, body.locked .layout { display: none; }
+body.locked .lock {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 16px;
+  background: linear-gradient(115deg, var(--red-dark) 0%, var(--bg) 35%, var(--bg) 65%, var(--red-dark) 100%);
+}
+.lock-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: min(400px, 100%);
+  padding: 24px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 0 60px rgba(196, 22, 28, .18);
+}
+.lock-avatar {
+  width: 80px; height: 80px;
+  align-self: center;
+  border-radius: 50%;
+  padding: 3px;
+  background: linear-gradient(135deg, var(--red-bright), var(--red-dark));
+}
+.lock-card h1 { text-align: center; font-size: 26px; margin: 8px 0 0; }
+.lock-card .hint { text-align: center; margin: 4px 0 12px; }
+.lock-card button { margin-top: 6px; }
+.lock-card a.hint { margin-top: 10px; margin-bottom: 0; text-decoration: underline; }
+.lock-error { color: var(--red-bright); min-height: 1em; margin: 0; font-size: 13px; }
+
 details.settings summary { cursor: pointer; font-family: "Rajdhani", sans-serif; font-size: 18px; font-weight: 700; }
 details.settings[open] summary { margin-bottom: 12px; }

@@ -10,7 +10,22 @@
   <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/admin.css">
 </head>
-<body>
+<body class="locked">
+  <div class="lock">
+    <form id="lock-form" class="lock-card" autocomplete="off">
+      <img src="assets/avatar.webp" alt="" class="lock-avatar">
+      <h1 id="lock-title">Panel admina</h1>
+      <p id="lock-info" class="hint"></p>
+      <label class="field" id="f-token"><span>Token GitHub (fine-grained PAT)</span><input type="password" id="lock-token" placeholder="github_pat_…"></label>
+      <label class="field" id="f-pass"><span>Hasło</span><input type="password" id="lock-pass" autocomplete="current-password"></label>
+      <label class="field" id="f-pass2"><span>Powtórz hasło</span><input type="password" id="lock-pass2" autocomplete="new-password"></label>
+      <p id="lock-error" class="lock-error"></p>
+      <button class="primary" id="lock-submit" type="submit">Odblokuj</button>
+      <button type="button" id="lock-cancel">Anuluj</button>
+      <a href="#" id="lock-reset" class="hint">Nie pamiętasz hasła? Ustaw nowe (wymaga tokenu)</a>
+    </form>
+  </div>
+
   <header class="topbar">
     <h1>Panel admina <small>zakładki strony</small></h1>
     <span id="status" class="status">Wczytywanie…</span>
@@ -19,6 +34,7 @@
       <button id="btn-download" title="Pobierz config.json">⬇ Pobierz JSON</button>
       <button id="btn-import" title="Wczytaj config.json z dysku">⬆ Importuj</button>
       <button id="btn-save" class="primary">💾 Zapisz na GitHub</button>
+      <button id="btn-lock" title="Zablokuj panel">🔒</button>
       <input id="import-file" type="file" accept=".json,application/json" hidden>
     </div>
   </header>
@@ -34,15 +50,13 @@
           </div>
           <div class="row two">
             <label class="field"><span>Gałąź</span><input type="text" id="gh-branch"></label>
-            <label class="field"><span>Token (fine-grained PAT)</span><input type="password" id="gh-token" autocomplete="off" placeholder="github_pat_…"></label>
+            <div class="field"><span style="display:block;font-size:12px;color:var(--muted);margin-bottom:4px">Hasło i token</span>
+              <button type="button" id="btn-change-pass">🔑 Zmień hasło / token</button></div>
           </div>
-          <label class="check"><input type="checkbox" id="gh-remember"> Zapamiętaj token w tej przeglądarce</label>
           <p class="hint">
             Zapis działa przez API GitHuba – zmiany trafiają jako commit do pliku <code>data/config.json</code>,
             a GitHub Pages publikuje je zwykle w ciągu 1–2 minut.<br>
-            Token utworzysz w <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub → Settings → Developer settings → Fine-grained tokens</a>:
-            dostęp tylko do tego repozytorium, uprawnienie <b>Contents: Read and write</b>.
-            Bez tokenu możesz edytować i pobrać plik JSON, a potem wrzucić go ręcznie.
+            Token GitHub jest przechowywany w repo wyłącznie w postaci zaszyfrowanej Twoim hasłem (<code>data/admin-lock.json</code>).
           </p>
         </details>
       </section>
@@ -110,27 +124,25 @@
     }
 
     // ---------- GitHub settings ----------
+    // The token lives only in memory; it is decrypted from data/admin-lock.json with the password.
+    let ghToken = ""
+
     function loadGhSettings() {
       let saved = {}
-      try { saved = JSON.parse(localStorage.getItem("admin.gh") || "{}") } catch {}
-      let token = ""
-      try { token = localStorage.getItem("admin.token") || sessionStorage.getItem("admin.token") || "" } catch {}
+      try {
+        saved = JSON.parse(localStorage.getItem("admin.gh") || "{}")
+        // Clean up plain-text tokens stored by the previous version of the panel
+        localStorage.removeItem("admin.token")
+        sessionStorage.removeItem("admin.token")
+      } catch {}
       $("gh-owner").value = saved.owner || DEFAULT_GH.owner
       $("gh-repo").value = saved.repo || DEFAULT_GH.repo
       $("gh-branch").value = saved.branch || DEFAULT_GH.branch
-      $("gh-token").value = token
-      $("gh-remember").checked = !!(saved.remember && token)
-      if (!token) $("gh-settings").open = true
     }
 
     function saveGhSettings() {
       const gh = getGh()
-      try {
-        localStorage.setItem("admin.gh", JSON.stringify({ owner: gh.owner, repo: gh.repo, branch: gh.branch, remember: $("gh-remember").checked }))
-        localStorage.removeItem("admin.token")
-        sessionStorage.removeItem("admin.token")
-        if (gh.token) ($("gh-remember").checked ? localStorage : sessionStorage).setItem("admin.token", gh.token)
-      } catch {}
+      try { localStorage.setItem("admin.gh", JSON.stringify({ owner: gh.owner, repo: gh.repo, branch: gh.branch })) } catch {}
     }
 
     function getGh() {
@@ -138,11 +150,11 @@
         owner: $("gh-owner").value.trim(),
         repo: $("gh-repo").value.trim(),
         branch: $("gh-branch").value.trim() || "main",
-        token: $("gh-token").value.trim()
+        token: ghToken
       }
     }
 
-    for (const id of ["gh-owner", "gh-repo", "gh-branch", "gh-token", "gh-remember"]) {
+    for (const id of ["gh-owner", "gh-repo", "gh-branch"]) {
       $(id).addEventListener("change", saveGhSettings)
     }
 
@@ -158,19 +170,168 @@
       return new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0)))
     }
 
-    function ghUrl(gh) {
-      return `https://api.github.com/repos/${encodeURIComponent(gh.owner)}/${encodeURIComponent(gh.repo)}/contents/${CONFIG_PATH}`
+    function ghRepoUrl(gh) {
+      return `https://api.github.com/repos/${encodeURIComponent(gh.owner)}/${encodeURIComponent(gh.repo)}`
+    }
+    function ghUrl(gh, path = CONFIG_PATH) {
+      return `${ghRepoUrl(gh)}/contents/${path}`
     }
     function ghHeaders(gh) {
-      return { "Accept": "application/vnd.github+json", "Authorization": `Bearer ${gh.token}`, "X-GitHub-Api-Version": "2022-11-28" }
+      const headers = { "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" }
+      if (gh.token) headers.Authorization = `Bearer ${gh.token}`
+      return headers
     }
 
-    async function ghGet(gh) {
-      const r = await fetch(`${ghUrl(gh)}?ref=${encodeURIComponent(gh.branch)}&t=${Date.now()}`, { headers: ghHeaders(gh), cache: "no-store" })
+    async function ghGet(gh, path = CONFIG_PATH) {
+      const r = await fetch(`${ghUrl(gh, path)}?ref=${encodeURIComponent(gh.branch)}&t=${Date.now()}`, { headers: ghHeaders(gh), cache: "no-store" })
       if (r.status === 404) return null
       if (!r.ok) throw new Error(`GitHub: ${r.status} ${(await r.json().catch(() => ({}))).message || ""}`)
       const data = await r.json()
       return { sha: data.sha, config: JSON.parse(fromBase64(data.content)) }
+    }
+
+    async function ghPut(gh, path, obj, message, sha) {
+      const body = { message, content: toBase64(JSON.stringify(obj, null, 2) + "\n"), branch: gh.branch }
+      if (sha) body.sha = sha
+      const r = await fetch(ghUrl(gh, path), { method: "PUT", headers: { ...ghHeaders(gh), "Content-Type": "application/json" }, body: JSON.stringify(body) })
+      const data = await r.json().catch(() => ({}))
+      if (!r.ok) throw new Error(`${r.status} ${data.message || ""}`)
+      return data
+    }
+
+    // ---------- Password lock (token encrypted with AES-GCM, key from PBKDF2) ----------
+    const LOCK_PATH = "data/admin-lock.json"
+    const KDF_ITERATIONS = 600000
+    const bytesToB64 = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes)))
+    const b64ToBytes = b64 => Uint8Array.from(atob(b64), c => c.charCodeAt(0))
+
+    async function deriveKey(password, salt, iterations) {
+      const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveKey"])
+      return crypto.subtle.deriveKey({ name: "PBKDF2", salt, iterations, hash: "SHA-256" }, base, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"])
+    }
+
+    async function encryptToken(token, password) {
+      const salt = crypto.getRandomValues(new Uint8Array(16))
+      const iv = crypto.getRandomValues(new Uint8Array(12))
+      const key = await deriveKey(password, salt, KDF_ITERATIONS)
+      const data = await crypto.subtle.encrypt({ name: "AES-GCM", iv }, key, new TextEncoder().encode(JSON.stringify({ token })))
+      return { v: 1, kdf: "PBKDF2-SHA256", iterations: KDF_ITERATIONS, salt: bytesToB64(salt), iv: bytesToB64(iv), data: bytesToB64(data) }
+    }
+
+    async function decryptToken(lock, password) {
+      const key = await deriveKey(password, b64ToBytes(lock.salt), lock.iterations)
+      const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64ToBytes(lock.iv) }, key, b64ToBytes(lock.data))
+      return JSON.parse(new TextDecoder().decode(plain)).token
+    }
+
+    let lockFile = null   // { sha, config } of data/admin-lock.json, or null if not set up
+    let lockMode = "unlock"
+
+    async function fetchLockFile() {
+      // API first (fresh after password change), published file as fallback (e.g. API rate limit)
+      try { return await ghGet({ ...getGh(), token: "" }, LOCK_PATH) } catch {}
+      const r = await fetch(`${LOCK_PATH}?v=${Date.now()}`, { cache: "no-store" })
+      return r.ok ? { sha: null, config: await r.json() } : null
+    }
+
+    function showLock(mode, info = "") {
+      lockMode = mode
+      document.body.classList.add("locked")
+      const show = (id, on) => { $(id).style.display = on ? "" : "none" }
+      show("f-token", mode !== "unlock")
+      show("f-pass2", mode !== "unlock")
+      show("lock-cancel", mode === "change")
+      show("lock-reset", mode === "unlock")
+      $("lock-title").textContent = { unlock: "Panel admina", setup: "Ustaw hasło", change: "Zmień hasło / token" }[mode]
+      $("lock-submit").textContent = mode === "unlock" ? "Odblokuj" : "Zapisz hasło"
+      $("lock-pass").autocomplete = mode === "unlock" ? "current-password" : "new-password"
+      $("lock-info").innerHTML = info || {
+        unlock: "Podaj hasło, aby odblokować panel.",
+        setup: "Podaj token GitHub i wybierz hasło (min. 10 znaków). Token zostanie zaszyfrowany hasłem i zapisany w repo – " +
+               'potem do panelu wystarczy samo hasło.<br>Token utworzysz w <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub → Settings → Developer settings → Fine-grained tokens</a>: ' +
+               "tylko to repozytorium, uprawnienie <b>Contents: Read and write</b>.",
+        change: "Możesz zostawić obecny token lub wkleić nowy, a następnie ustawić nowe hasło."
+      }[mode]
+      $("lock-token").value = mode === "change" ? ghToken : ""
+      $("lock-pass").value = $("lock-pass2").value = ""
+      $("lock-error").textContent = ""
+      ;(mode === "unlock" ? $("lock-pass") : $("lock-token")).focus()
+    }
+
+    function unlock(token) {
+      ghToken = token
+      document.body.classList.remove("locked")
+      load()
+    }
+
+    async function checkToken(gh) {
+      const r = await fetch(ghRepoUrl(gh), { headers: ghHeaders(gh), cache: "no-store" })
+      if (r.status === 401) throw new Error("Nieprawidłowy token.")
+      if (!r.ok) throw new Error(`Brak dostępu do repozytorium (${r.status}).`)
+      const repo = await r.json()
+      if (!repo.permissions?.push) throw new Error("Token nie ma uprawnienia do zapisu (Contents: Read and write).")
+    }
+
+    $("lock-form").addEventListener("submit", async e => {
+      e.preventDefault()
+      const err = $("lock-error")
+      const pass = $("lock-pass").value
+      err.textContent = ""
+      $("lock-submit").disabled = true
+      try {
+        if (lockMode === "unlock") {
+          $("lock-submit").textContent = "Sprawdzanie…"
+          try { unlock(await decryptToken(lockFile.config, pass)) }
+          catch { throw new Error("Nieprawidłowe hasło.") }
+          return
+        }
+        const token = $("lock-token").value.trim()
+        if (!token) throw new Error("Podaj token GitHub.")
+        if (pass.length < 10) throw new Error("Hasło musi mieć co najmniej 10 znaków.")
+        if (pass !== $("lock-pass2").value) throw new Error("Hasła nie są takie same.")
+        saveGhSettings()
+        const gh = { ...getGh(), token }
+        $("lock-submit").textContent = "Zapisywanie…"
+        await checkToken(gh)
+        const current = await ghGet(gh, LOCK_PATH)
+        const encrypted = await encryptToken(token, pass)
+        const res = await ghPut(gh, LOCK_PATH, encrypted, "Aktualizacja hasła panelu admina", current?.sha)
+        lockFile = { sha: res.content?.sha || null, config: encrypted }
+        if (lockMode === "change") {
+          ghToken = token
+          document.body.classList.remove("locked")
+          setStatus("Hasło zmienione ✔", "ok")
+        } else {
+          unlock(token)
+        }
+      } catch (ex) {
+        err.textContent = ex.message
+      } finally {
+        $("lock-submit").disabled = false
+        if (document.body.classList.contains("locked")) $("lock-submit").textContent = lockMode === "unlock" ? "Odblokuj" : "Zapisz hasło"
+      }
+    })
+
+    $("lock-cancel").addEventListener("click", () => document.body.classList.remove("locked"))
+    $("lock-reset").addEventListener("click", e => { e.preventDefault(); showLock("setup") })
+    $("btn-change-pass").addEventListener("click", () => showLock("change"))
+    $("btn-lock").addEventListener("click", () => {
+      if (dirty && !confirm("Masz niezapisane zmiany. Zablokować panel i je odrzucić?")) return
+      dirty = false
+      ghToken = ""
+      setConfig({ profile: {}, links: [] })
+      showLock(lockFile ? "unlock" : "setup")
+    })
+
+    async function init() {
+      loadGhSettings()
+      if (!window.crypto?.subtle) {
+        showLock("unlock", "Ta przeglądarka nie obsługuje szyfrowania (wymagane HTTPS).")
+        $("lock-form").querySelectorAll("input,button").forEach(el => el.disabled = true)
+        return
+      }
+      lockFile = await fetchLockFile().catch(() => null)
+      showLock(lockFile ? "unlock" : "setup")
     }
 
     // ---------- Load ----------
@@ -245,12 +406,7 @@
     // ---------- Save ----------
     async function save() {
       const gh = getGh()
-      if (!gh.token) {
-        $("gh-settings").open = true
-        $("gh-token").focus()
-        setStatus("Podaj token GitHub, aby zapisać (albo pobierz JSON)", "err")
-        return
-      }
+      if (!gh.token) { showLock(lockFile ? "unlock" : "setup"); return }
       const cfg = toConfig()
       const errors = validate(cfg)
       if (errors.length) { alert("Popraw błędy:\n\n" + errors.join("\n")); return }
@@ -266,15 +422,7 @@
           setStatus("Zapis anulowany", "err")
           return
         }
-        const body = {
-          message: "Aktualizacja zakładek (panel admina)",
-          content: toBase64(JSON.stringify(cfg, null, 2) + "\n"),
-          branch: gh.branch
-        }
-        if (current) body.sha = current.sha
-        const r = await fetch(ghUrl(gh), { method: "PUT", headers: { ...ghHeaders(gh), "Content-Type": "application/json" }, body: JSON.stringify(body) })
-        const data = await r.json().catch(() => ({}))
-        if (!r.ok) throw new Error(`${r.status} ${data.message || ""}`)
+        const data = await ghPut(gh, CONFIG_PATH, cfg, "Aktualizacja zakładek (panel admina)", current?.sha)
         remoteSha = data.content?.sha || null
         dirty = false
         setStatus("Zapisano ✔ – strona odświeży się za ok. 1–2 min", "ok")
@@ -467,8 +615,7 @@
     })
     window.addEventListener("beforeunload", e => { if (dirty) { e.preventDefault(); e.returnValue = "" } })
 
-    loadGhSettings()
-    load()
+    init()
   </script>
 </body>
 </html>
