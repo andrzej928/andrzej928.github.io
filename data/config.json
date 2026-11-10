@@ -42,6 +42,13 @@
       "subtitle": "tiktok.com/@xn0rthh",
       "icon": "tiktok",
       "visible": true
+    },
+    {
+      "title": "Nowa zakładka",
+      "url": "https://",
+      "subtitle": "",
+      "icon": "link",
+      "visible": true
     }
   ]
 }
